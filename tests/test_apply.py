@@ -80,3 +80,63 @@ def test_rejects_out_of_range_numbers(cfg, clock):
     stage(cfg, [FB])
     with pytest.raises(ApplyError):
         apply_candidates(cfg, "s1", [3], GIT, clock)
+
+
+def test_index_write_is_atomic(cfg, clock, monkeypatch):
+    """HIGH-1: a crash mid-write must not truncate an existing index."""
+    import memory_capture.apply as ap
+    stage(cfg, [REF])
+    h = home_memory_dir(cfg)
+    h.mkdir(parents=True)
+    (h / "MEMORY.md").write_text("- [old](old.md) — keep\n")
+    real_replace = ap.os.replace
+
+    def crash(*a, **k):
+        raise OSError("disk died")
+    monkeypatch.setattr(ap.os, "replace", crash)
+    with pytest.raises((OSError, ApplyError)):
+        apply_candidates(cfg, "s1", [1], GIT, clock)
+    monkeypatch.setattr(ap.os, "replace", real_replace)
+    assert "keep" in (h / "MEMORY.md").read_text()
+
+
+def test_partial_failure_records_applied_and_retry_skips_them(cfg, clock, monkeypatch):
+    """HIGH-2: if the 2nd write fails, the 1st stays recorded and a retry does not hit 'already exists'."""
+    import memory_capture.apply as ap
+    stage(cfg, [FB, REF])
+    real = ap._write
+    calls = {"n": 0}
+
+    def flaky(cfg_, c, plan, clock_):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("disk full")
+        return real(cfg_, c, plan, clock_)
+    monkeypatch.setattr(ap, "_write", flaky)
+    with pytest.raises(ApplyError) as e:
+        apply_candidates(cfg, "s1", [1, 2], GIT, clock)
+    assert "1" in str(e.value) and "disk full" in str(e.value)
+    assert Inbox(cfg.inbox_dir).get_candidates("s1")["applied"] == [1]
+    monkeypatch.setattr(ap, "_write", real)
+    apply_candidates(cfg, "s1", [1, 2], GIT, clock)  # retry: 1 skipped, 2 written
+    assert (home_memory_dir(cfg) / "reference_vpn.md").exists()
+    assert Inbox(cfg.inbox_dir).candidates() == []
+
+
+def test_corrupt_candidates_file_is_a_clean_error(cfg, clock):
+    """MEDIUM-1."""
+    d = cfg.inbox_dir / "candidates"
+    d.mkdir(parents=True)
+    (d / "s1.json").write_text("{broken")
+    with pytest.raises(ApplyError):
+        apply_candidates(cfg, "s1", [1], GIT, clock)
+
+
+def test_title_with_link_syntax_does_not_break_dedup(cfg, clock):
+    """MEDIUM-2."""
+    h = home_memory_dir(cfg)
+    h.mkdir(parents=True)
+    (h / "MEMORY.md").write_text("- [x](evil.md) — other\n")
+    stage(cfg, [dict(REF, title="Fix the ](evil.md) case")])
+    apply_candidates(cfg, "s1", [1], GIT, clock)
+    assert "(reference_vpn.md)" in (h / "MEMORY.md").read_text()
