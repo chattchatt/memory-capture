@@ -1,0 +1,20 @@
+# 다시 만들 수 있는 것
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+# AI 도구 작업 상태
+.omc/
+.omx/
+# 새면 안 되는 것
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+tokens.json
+credentials.json

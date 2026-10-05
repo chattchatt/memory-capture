@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# 이 저장소의 확인 명령. 커밋 전에 자동으로 돈다. 실패하면 커밋이 막힌다.
+# 테스트가 생기면 tests/ 에 넣으면 알아서 돈다. 그 밖의 확인은 맨 아래에 덧붙인다.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+py=python3; [ -x .venv/bin/python ] && py=.venv/bin/python
+
+list() { git ls-files --cached --others --exclude-standard -- "$@"; }
+
+files=$(list '*.py'); if [ -n "$files" ]; then
+  echo "- 파이썬 문법"; printf '%s\n' "$files" | "$py" -c 'import ast,sys
+for f in sys.stdin.read().split("\n"):
+    f and ast.parse(open(f,"rb").read(), f)'
+fi
+files=$(list '*.sh'); if [ -n "$files" ]; then
+  echo "- 셸 문법"; printf '%s\n' "$files" | while IFS= read -r f; do bash -n "$f"; done
+fi
+files=$(list '*.json'); if [ -n "$files" ]; then
+  echo "- JSON 형식"; printf '%s\n' "$files" | "$py" -c 'import json,sys
+for f in sys.stdin.read().split("\n"):
+    f and json.load(open(f))'
+fi
+files=$(list '*.plist'); if [ -n "$files" ]; then
+  echo "- plist 형식"; printf '%s\n' "$files" | while IFS= read -r f; do plutil -lint -s "$f"; done
+fi
+
+if [ -n "$(list 'tests/*test_*.py' 'tests/*_test.py')" ]; then  # pytest가 모으는 시험 파일이 있을 때만. JS 시험만 있거나 conftest.py뿐이면 건너뜀
+  echo "- 테스트"
+  if "$py" -c 'import pytest' 2>/dev/null; then "$py" -m pytest -q tests
+  else "$py" -m unittest discover -s tests -q; fi
+fi
+if [ -f package.json ] && grep -q '"test"' package.json; then
+  echo "- npm test"; npm test --silent
+fi
+
+# 이 저장소만의 확인은 여기 아래에.
