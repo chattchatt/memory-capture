@@ -1,0 +1,14 @@
+# ~/.config/memory-capture/config.toml — every key is optional.
+
+# Shared store for feedback/project bodies (+ INDEX.md). Leave empty to keep bodies in
+# Claude Code's per-folder memory directly.
+# kernel_dir = "~/notes/memory"
+
+# projects_dir = "~/.claude/projects"
+# inbox_dir = "~/.claude/memory-inbox"
+# min_transcript_bytes = 20000     # skip short sessions
+# max_candidates = 5
+# capture_reasons = ["clear", "prompt_input_exit", "logout", "other"]
+# claude_bin = "claude"
+# extract_timeout_s = 300
+# rules_file = "~/.config/memory-capture/rules.md"   # extra extraction rules appended to the prompt
