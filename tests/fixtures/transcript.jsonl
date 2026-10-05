@@ -1,0 +1,11 @@
+{"type": "permission-mode", "sessionId": "abc123"}
+{"type": "user", "message": {"role": "user", "content": "<command-name>/clear</command-name>"}, "cwd": "/tmp/work/demo", "sessionId": "abc123", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": "Please write the weekly report as a table, not prose."}, "cwd": "/tmp/work/demo", "sessionId": "abc123", "isSidechain": false}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "thinking", "thinking": "hidden"}]}, "sessionId": "abc123", "isSidechain": false}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}]}, "sessionId": "abc123", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "file-a\nfile-b"}]}, "sessionId": "abc123", "isSidechain": false}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Done. I wrote it as a table."}]}, "sessionId": "abc123", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": "Good. Always do tables for reports."}]}, "sessionId": "abc123", "isSidechain": false}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "sidechain chatter"}]}, "sessionId": "abc123", "isSidechain": true}
+{"type": "attachment", "attachment": {"x": 1}, "sessionId": "abc123"}
+not json line
