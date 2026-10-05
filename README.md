@@ -44,6 +44,9 @@ existing hooks) and a launchd plist that runs the worker whenever a session is q
 
 ## Commands
 
+Global options such as `--config <file>` go before the subcommand: `memory-capture --config c.toml show`.
+If a multi-item `apply` fails midway, fix the cause and re-run the same command; items already saved are skipped.
+
 | command | what it does |
 |---|---|
 | `memory-capture show` | list waiting candidates, numbered |
