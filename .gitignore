@@ -18,3 +18,4 @@ build/
 *.key
 tokens.json
 credentials.json
+*.egg-info/
