@@ -37,8 +37,17 @@ def test_cli_runs_bare_child_with_guard_env_and_returns_candidates():
     ex = ClaudeCliExtractor(claude_bin="claude", run=run, base_env={"PATH": "/bin"})
     assert ex.extract("USER: hi", {"cwd": "/w"}) == [{"name": "a"}]
     args, kw = run.calls[0]
-    assert args[:2] == ["claude", "-p"] and "--bare" in args
+    assert args[:2] == ["claude", "-p"]
+    assert "--bare" not in args  # bare mode skips OAuth login, so subscription users fail
+    assert '"disableAllHooks": true' in args[args.index("--settings") + 1]
     assert kw["env"]["MEMORY_CAPTURE_CHILD"] == "1" and kw["timeout"] > 0
+
+
+def test_cli_passes_model_when_configured():
+    run = FakeRun(stdout=wrap({"candidates": []}))
+    ClaudeCliExtractor(run=run, base_env={}, model="sonnet").extract("x", {})
+    args = run.calls[0][0]
+    assert args[args.index("--model") + 1] == "sonnet"
 
 
 def test_cli_nonzero_exit_and_timeout_become_extraction_errors():

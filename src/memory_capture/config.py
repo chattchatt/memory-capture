@@ -25,6 +25,7 @@ class Config:
     max_dialogue_chars: int = 60_000
     max_attempts: int = 3
     claude_bin: str = "claude"
+    model: str | None = None
     extract_timeout_s: int = 300
     rules_file: Path | None = None
     capture_reasons: tuple = field(default=CAPTURE_REASONS)
@@ -52,6 +53,7 @@ def load(path: Path | None = None) -> Config:
         max_dialogue_chars=int(data.get("max_dialogue_chars", 60_000)),
         max_attempts=int(data.get("max_attempts", 3)),
         claude_bin=str(data.get("claude_bin", "claude")),
+        model=data.get("model") or None,
         extract_timeout_s=int(data.get("extract_timeout_s", 300)),
         rules_file=path_of("rules_file", ""),
         capture_reasons=tuple(data.get("capture_reasons", CAPTURE_REASONS)),

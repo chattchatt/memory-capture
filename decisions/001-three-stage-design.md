@@ -8,9 +8,12 @@ CLI is not guaranteed. Extraction calls a model and takes tens of seconds, so Se
 appends a small pending record.
 
 ## Why a launchd watcher
-The pending folder is watched (macOS `WatchPaths`); the worker runs `claude -p --bare` per item and
-writes a candidates file. `--bare` skips hooks/skills, and `MEMORY_CAPTURE_CHILD=1` makes our own
-hooks no-op as a second guard against recursion.
+The pending folder is watched (macOS `WatchPaths`); the worker runs `claude -p` per item with
+`--settings '{"disableAllHooks": true}'` and writes a candidates file. `MEMORY_CAPTURE_CHILD=1` makes
+our own hooks no-op as a second guard against recursion.
+
+Update 2026-10-06: `--bare` was the first choice but it skips OAuth login, so it fails with
+"Not logged in" for subscription (non-API-key) users. Verified on a real machine.
 
 ## Why writes are done by code, not the model
 Placement rules (which layer, which folder index, pointer vs body) must be identical every time and

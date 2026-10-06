@@ -21,4 +21,4 @@ written, each to the location its layer/scope rule dictates.
 
 ## Limits
 - At most `max_candidates` (default 5) per session; short sessions are skipped.
-- Extraction child runs with `--bare` and an env guard so it never re-triggers the hooks.
+- Extraction child runs with all hooks disabled and an env guard so it never re-triggers the hooks.

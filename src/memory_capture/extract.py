@@ -71,21 +71,28 @@ def valid(c: dict) -> bool:
 
 
 class ClaudeCliExtractor:
-    """Runs `claude -p --bare` as a child; the env guard stops our hooks from firing inside it."""
+    """Runs `claude -p` as a child with all hooks disabled (`--settings {"disableAllHooks": true}`).
+
+    `--bare` would also skip hooks but it skips OAuth login too, so subscription users could not
+    use it. The env guard is a second line of defense for our own hooks.
+    """
 
     def __init__(self, claude_bin="claude", timeout_s=300, max_n=5, extra_rules="",
-                 run=subprocess.run, base_env=None):
+                 run=subprocess.run, base_env=None, model=None, cwd=None):
         self.claude_bin, self.timeout_s, self.max_n, self.extra_rules = claude_bin, timeout_s, max_n, extra_rules
+        self.model, self.cwd = model, cwd
         self.run = run
         self.base_env = dict(os.environ) if base_env is None else base_env
 
     def extract(self, dialogue: str, context: dict) -> list[dict]:
         prompt = build_prompt(dialogue, context, self.max_n, self.extra_rules)
         env = dict(self.base_env, MEMORY_CAPTURE_CHILD="1")
-        args = [self.claude_bin, "-p", "--bare", "--output-format", "json"]
+        args = [self.claude_bin, "-p", "--settings", '{"disableAllHooks": true}', "--output-format", "json"]
+        if self.model:
+            args += ["--model", self.model]
         try:
             proc = self.run(args, input=prompt, capture_output=True, text=True,
-                            timeout=self.timeout_s, env=env)
+                            timeout=self.timeout_s, env=env, cwd=self.cwd)
         except subprocess.TimeoutExpired as e:
             raise ExtractionError("timeout") from e
         except OSError as e:

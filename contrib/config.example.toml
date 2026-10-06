@@ -10,5 +10,6 @@
 # max_candidates = 5
 # capture_reasons = ["clear", "prompt_input_exit", "logout", "other"]
 # claude_bin = "claude"
+# model = "sonnet"                # model for extraction (default: your Claude Code default)
 # extract_timeout_s = 300
 # rules_file = "~/.config/memory-capture/rules.md"   # extra extraction rules appended to the prompt

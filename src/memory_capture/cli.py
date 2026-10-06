@@ -38,7 +38,8 @@ def cmd_hook_start(cfg, args) -> int:
 
 def cmd_work(cfg, args) -> int:
     extra = cfg.rules_file.read_text() if cfg.rules_file and cfg.rules_file.exists() else ""
-    ex = ClaudeCliExtractor(cfg.claude_bin, cfg.extract_timeout_s, cfg.max_candidates, extra)
+    ex = ClaudeCliExtractor(cfg.claude_bin, cfg.extract_timeout_s, cfg.max_candidates, extra,
+                            model=cfg.model, cwd=str(cfg.inbox_dir))
     process_pending(cfg, ex, SystemClock())
     return 0
 

@@ -11,7 +11,7 @@ confirm them at the start of your next session. Nothing is saved without your ye
                                              │  launchd WatchPaths
                                              ▼
                                    memory-capture work
-                       claude -p --bare  (reads the transcript, proposes ≤ 5 candidates)
+                       claude -p, hooks disabled  (reads the transcript, proposes ≤ 5 candidates)
                                              │
                                              ▼
 next session ──► SessionStart hook ──► "N memory candidates are waiting" injected as context
@@ -28,7 +28,7 @@ next session ──► SessionStart hook ──► "N memory candidates are wait
   session in that folder (git root decides the folder).
 - **Safety.** No overwrite of existing memories (updates append a dated section), names are
   validated, and anything that looks like a phone number is refused. The extraction child runs with
-  `--bare` and an env guard so it never re-triggers the hooks.
+  all hooks disabled (`disableAllHooks`) and an env guard so it never re-triggers them.
 
 ## Install (macOS)
 
