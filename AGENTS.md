@@ -7,6 +7,7 @@ Claude Code 세션이 끝날 때(/clear·종료) 기억 후보를 모으고, 다
 
 ## 확인 명령
 `make check` (= `scripts/check`) — 커밋 전에 자동으로 돈다. 실패하면 커밋되지 않는다.
+`make smoke` — 진짜 `claude -p`를 한 번 돌려 가짜와 실물의 어긋남을 잡는다. check에는 안 들어가며, 추출 방식을 바꿨을 때 사람이 돌린다.
 
 ## 작업 규칙
 - 순서는 고친다 → `make check` → 커밋 → push. 한 세션 안에서 끝낸다.

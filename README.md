@@ -69,6 +69,7 @@ opening a new session: everything idle in the last week that was never taken wou
 
 ```bash
 make check     # syntax + pytest; every external dependency is a seam with a test double
+make smoke     # runs the real `claude -p` once on a fake dialogue, prints OK/FAIL (not in check; needs login)
 ```
 
 Seams: transcript reader (real JSONL schema fixture), extractor (`subprocess.run` double), inbox
