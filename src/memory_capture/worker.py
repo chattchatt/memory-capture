@@ -24,6 +24,14 @@ def existing_summary(mem_dir: Path) -> str:
 
 def process_pending(cfg: Config, extractor, clock, git_root=_git_root) -> None:
     inbox = Inbox(cfg.inbox_dir)
+    with inbox.lock() as mine:
+        if not mine:
+            inbox.log(f"{clock.now_iso()} another worker is running; leaving the queue to it")
+            return
+        _process(cfg, inbox, extractor, clock, git_root)
+
+
+def _process(cfg: Config, inbox: Inbox, extractor, clock, git_root) -> None:
     for item in inbox.pending():
         sid = item["session_id"]
         try:
@@ -46,8 +54,16 @@ def process_pending(cfg: Config, extractor, clock, git_root=_git_root) -> None:
             inbox.log(f"{clock.now_iso()} {sid} extraction error: {e}")
             continue
         good = [c for c in cands if valid(c)][: cfg.max_candidates]
-        if good:
+        # The same session can be extracted twice (swept while still open, then its real end), and
+        # the first set may still be waiting for the user: keep it and add only new names.
+        try:
+            prev = (inbox.get_candidates(sid) or {}).get("candidates", [])
+        except (OSError, ValueError):  # unreadable earlier set: nothing to keep
+            prev = []
+        seen = {c.get("name") for c in prev}
+        merged = prev + [c for c in good if c["name"] not in seen]
+        if merged:
             inbox.write_candidates(sid, {"session_id": sid, "cwd": item.get("cwd", ""),
-                                         "extracted_at": clock.now_iso(), "candidates": good})
+                                         "extracted_at": clock.now_iso(), "candidates": merged})
         inbox.drop_pending(sid)
         inbox.log(f"{clock.now_iso()} {sid} -> {len(good)} candidate(s)")

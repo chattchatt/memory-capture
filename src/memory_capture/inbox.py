@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
 import re
@@ -73,6 +75,26 @@ class Inbox:
 
     def failed(self) -> list[dict]:
         return _read_all(self._dir("failed"))
+
+    def log(self, line: str) -> None:
+        self.root.mkdir(parents=True, exist_ok=True)
+        with open(self.root / "log.txt", "a", encoding="utf-8") as f:
+            f.write(line.rstrip() + "\n")
+
+    @contextlib.contextmanager
+    def lock(self):
+        """One worker at a time. Yields False (without waiting) when another worker holds it."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        with open(self.root / "worker.lock", "w") as f:
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                yield False
+                return
+            try:
+                yield True
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
 
     def log(self, line: str) -> None:
         self.root.mkdir(parents=True, exist_ok=True)
