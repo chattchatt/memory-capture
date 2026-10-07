@@ -76,10 +76,61 @@ class Inbox:
     def failed(self) -> list[dict]:
         return _read_all(self._dir("failed"))
 
-    def log(self, line: str) -> None:
+    def known(self, session_id: str) -> bool:
+        """Waiting somewhere in the inbox (queued, awaiting confirmation, or failed)."""
+        return any((self._dir(k) / f"{_name(session_id)}.json").exists() for k in ("pending", "candidates", "failed"))
+
+    def was_applied(self, session_id: str) -> bool:
+        return (self._dir("applied") / f"{_name(session_id)}.json").exists()
+
+    # done.json: session id -> transcript size when it was last extracted, so a resumed session is
+    # taken again only after it grew, and a finished one is never taken twice.
+    def done(self) -> dict:
+        try:
+            return json.loads((self.root / "done.json").read_text())
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+    def mark_done(self, session_id: str, size: int) -> None:
+        # The sweep (session start) and the worker both write here; a short lock of its own keeps
+        # one from dropping the other's entry. Not the worker lock, which the worker already holds.
         self.root.mkdir(parents=True, exist_ok=True)
-        with open(self.root / "log.txt", "a", encoding="utf-8") as f:
-            f.write(line.rstrip() + "\n")
+        with open(self.root / "done.lock", "w") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                d = self.done()
+                d[session_id] = size
+                _write_atomic(self.root / "done.json", d)
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+
+    def _requeue(self, item: dict, rounds: int) -> None:
+        clean = {k: v for k, v in item.items() if k not in ("error", "last_error")}
+        self.enqueue(dict(clean, attempts=0, retry_rounds=rounds))
+        (self._dir("failed") / f"{_name(item['session_id'])}.json").unlink(missing_ok=True)
+
+    def retry_due(self, now_ts: float, after_s: float, max_rounds: int) -> list[str]:
+        """Move failures older than after_s back to pending, at most max_rounds times per session."""
+        ids = []
+        folder = self._dir("failed")
+        for item in self.failed():
+            rounds = int(item.get("retry_rounds", 0))
+            try:
+                age = now_ts - (folder / f"{_name(item['session_id'])}.json").stat().st_mtime
+            except OSError:
+                continue
+            if rounds < max_rounds and age >= after_s:
+                self._requeue(item, rounds + 1)
+                ids.append(item["session_id"])
+        return ids
+
+    def retry_all(self) -> list[str]:
+        """Manual retry: every failure goes back to pending now."""
+        ids = []
+        for item in self.failed():
+            self._requeue(item, int(item.get("retry_rounds", 0)))
+            ids.append(item["session_id"])
+        return ids
 
     @contextlib.contextmanager
     def lock(self):

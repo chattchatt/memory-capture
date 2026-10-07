@@ -7,6 +7,8 @@ from pathlib import Path
 
 from .config import START_SOURCES, Config
 from .inbox import Inbox
+from .ports import SystemClock
+from .sweep import sweep
 
 CHILD_ENV = "MEMORY_CAPTURE_CHILD"
 
@@ -50,12 +52,17 @@ def notice_text(sets: list[dict]) -> str:
     )
 
 
-def on_session_start(event: dict, cfg: Config, env=None) -> dict | None:
-    """Return hook output announcing ready candidates, or None."""
+def on_session_start(event: dict, cfg: Config, env=None, clock=None) -> dict | None:
+    """Queue sessions that ended without SessionEnd, then return hook output announcing ready
+    candidates, or None. Never raises."""
     env = os.environ if env is None else env
     try:
         if env.get(CHILD_ENV) or event.get("source") not in START_SOURCES:
             return None
+        try:
+            sweep(cfg, clock or SystemClock())
+        except Exception as e:  # the announcement below must still work
+            Inbox(cfg.inbox_dir).log(f"sweep error: {e!r}")
         sets = [s for s in Inbox(cfg.inbox_dir).candidates() if s.get("candidates")]
         if not sets:
             return None

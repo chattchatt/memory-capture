@@ -10,6 +10,7 @@ from typing import Protocol
 class Clock(Protocol):
     def now_iso(self) -> str: ...
     def today(self) -> str: ...
+    def now_ts(self) -> float: ...
 
 
 class SystemClock:
@@ -18,6 +19,9 @@ class SystemClock:
 
     def today(self) -> str:
         return _dt.date.today().isoformat()
+
+    def now_ts(self) -> float:
+        return _dt.datetime.now().timestamp()
 
 
 class Extractor(Protocol):

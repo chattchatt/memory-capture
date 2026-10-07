@@ -14,6 +14,7 @@ from .extract import ClaudeCliExtractor
 from .hooks import on_session_end, on_session_start
 from .inbox import Inbox
 from .ports import SystemClock, git_root
+from .sweep import sweep
 from .worker import process_pending
 
 
@@ -30,7 +31,7 @@ def cmd_hook_end(cfg, args) -> int:
 
 
 def cmd_hook_start(cfg, args) -> int:
-    out = on_session_start(_stdin_json(), cfg)
+    out = on_session_start(_stdin_json(), cfg, clock=SystemClock())
     if out:
         print(json.dumps(out, ensure_ascii=False))
     return 0
@@ -41,6 +42,20 @@ def cmd_work(cfg, args) -> int:
     ex = ClaudeCliExtractor(cfg.claude_bin, cfg.extract_timeout_s, cfg.max_candidates, extra,
                             model=cfg.model, cwd=str(cfg.inbox_dir))
     process_pending(cfg, ex, SystemClock())
+    return 0
+
+
+def cmd_sweep(cfg, args) -> int:
+    ids = sweep(cfg, SystemClock(), dry_run=args.dry_run)
+    print(("would queue" if args.dry_run else "queued") + f" {len(ids)} session(s)")
+    for sid in ids:
+        print(f"  {sid}")
+    return 0
+
+
+def cmd_retry(cfg, args) -> int:
+    ids = Inbox(cfg.inbox_dir).retry_all()
+    print(f"moved {len(ids)} failed session(s) back to pending")
     return 0
 
 
@@ -134,12 +149,16 @@ def main(argv=None) -> int:
     d = sub.add_parser("discard", help="drop all candidates of a session")
     d.add_argument("session_id")
     sub.add_parser("status", help="inbox counts and failures")
+    w = sub.add_parser("sweep", help="queue sessions that ended without a SessionEnd hook (killed window, crash)")
+    w.add_argument("--dry-run", action="store_true", help="only list what would be queued")
+    sub.add_parser("retry", help="move every failed session back to pending")
     i = sub.add_parser("install", help="print hook and launchd snippets")
     i.add_argument("--exe", help="absolute path of the memory-capture executable")
     args = p.parse_args(argv)
     cfg = load(args.config)
     handler = {"hook-end": cmd_hook_end, "hook-start": cmd_hook_start, "work": cmd_work, "show": cmd_show,
-               "apply": cmd_apply, "discard": cmd_discard, "status": cmd_status, "install": cmd_install}[args.cmd]
+               "apply": cmd_apply, "discard": cmd_discard, "status": cmd_status, "install": cmd_install,
+               "sweep": cmd_sweep, "retry": cmd_retry}[args.cmd]
     try:
         return handler(cfg, args)
     except ApplyError as e:

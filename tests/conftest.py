@@ -1,3 +1,4 @@
+import datetime
 import json
 import sys
 from pathlib import Path
@@ -22,6 +23,9 @@ class FixedClock:
 
     def today(self):
         return self.iso[:10]
+
+    def now_ts(self):
+        return datetime.datetime.fromisoformat(self.iso).timestamp()
 
 
 class FakeGitRoot:

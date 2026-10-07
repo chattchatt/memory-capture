@@ -29,6 +29,12 @@ class Config:
     extract_timeout_s: int = 300
     rules_file: Path | None = None
     capture_reasons: tuple = field(default=CAPTURE_REASONS)
+    # sweep: sessions that never sent SessionEnd (window killed, crash) and failures due for a retry
+    sweep_idle_minutes: int = 120
+    sweep_lookback_days: int = 7
+    interactive_entrypoints: tuple = ("cli",)
+    retry_after_hours: int = 6
+    max_retry_rounds: int = 3
 
 
 def load(path: Path | None = None) -> Config:
@@ -57,4 +63,9 @@ def load(path: Path | None = None) -> Config:
         extract_timeout_s=int(data.get("extract_timeout_s", 300)),
         rules_file=path_of("rules_file", ""),
         capture_reasons=tuple(data.get("capture_reasons", CAPTURE_REASONS)),
+        sweep_idle_minutes=int(data.get("sweep_idle_minutes", 120)),
+        sweep_lookback_days=int(data.get("sweep_lookback_days", 7)),
+        interactive_entrypoints=tuple(data.get("interactive_entrypoints", ("cli",))),
+        retry_after_hours=int(data.get("retry_after_hours", 6)),
+        max_retry_rounds=int(data.get("max_retry_rounds", 3)),
     )

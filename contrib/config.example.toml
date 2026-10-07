@@ -12,4 +12,9 @@
 # claude_bin = "claude"
 # model = "sonnet"                # model for extraction (default: your Claude Code default)
 # extract_timeout_s = 300
+# sweep_idle_minutes = 120        # a transcript idle this long without SessionEnd counts as finished
+# sweep_lookback_days = 7
+# interactive_entrypoints = ["cli"]   # skip `claude -p` (sdk-cli) runs
+# retry_after_hours = 6           # failed extractions are retried after this
+# max_retry_rounds = 3
 # rules_file = "~/.config/memory-capture/rules.md"   # extra extraction rules appended to the prompt

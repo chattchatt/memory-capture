@@ -65,5 +65,9 @@ def _process(cfg: Config, inbox: Inbox, extractor, clock, git_root) -> None:
         if merged:
             inbox.write_candidates(sid, {"session_id": sid, "cwd": item.get("cwd", ""),
                                          "extracted_at": clock.now_iso(), "candidates": merged})
+        try:
+            inbox.mark_done(sid, Path(item["transcript_path"]).stat().st_size)
+        except OSError as e:
+            inbox.log(f"{clock.now_iso()} {sid} not recorded as done: {e}")
         inbox.drop_pending(sid)
         inbox.log(f"{clock.now_iso()} {sid} -> {len(good)} candidate(s)")

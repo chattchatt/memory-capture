@@ -63,3 +63,26 @@ def test_session_start_ignores_compact_and_resume(cfg):
     for src in ("compact", "resume"):
         ev["source"] = src
         assert hooks.on_session_start(ev, cfg, env={}) is None
+
+
+def test_session_start_queues_a_killed_session(cfg):
+    import os
+    from conftest import FixedClock
+    clock = FixedClock("2026-10-05T12:00:00")
+    d = cfg.projects_dir / "-w-demo"
+    d.mkdir(parents=True)
+    p = d / "killed1.jsonl"
+    p.write_text(json.dumps({"type": "user", "entrypoint": "cli", "cwd": "/w/demo", "message": {"content": "x" * 50}}) + "\n")
+    old = clock.now_ts() - 5 * 3600
+    os.utime(p, (old, old))
+    hooks.on_session_start(load_fixture("session_start.json"), cfg, env={}, clock=clock)
+    assert [i["session_id"] for i in Inbox(cfg.inbox_dir).pending()] == ["killed1"]
+
+
+def test_session_start_still_announces_when_sweep_breaks(cfg, monkeypatch):
+    Inbox(cfg.inbox_dir).write_candidates("abc123", {"session_id": "abc123", "cwd": "/w", "candidates": [{"name": "a"}]})
+    def boom(*a, **k):
+        raise RuntimeError("disk")
+    monkeypatch.setattr(hooks, "sweep", boom)
+    out = hooks.on_session_start(load_fixture("session_start.json"), cfg, env={})
+    assert out and "memory-capture show" in out["hookSpecificOutput"]["additionalContext"]
