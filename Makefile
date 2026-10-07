@@ -3,3 +3,7 @@
 .PHONY: check
 check:
 	scripts/check
+
+# 테스트의 표준 이름. 지금은 make check와 같다(검사 내용은 scripts/check 한 곳).
+.PHONY: test
+test: check
