@@ -28,11 +28,11 @@ class Extractor(Protocol):
     def extract(self, dialogue: str, context: dict) -> list[dict]: ...
 
 
-def git_root(cwd: str) -> str:
+def git_root(cwd: str, runner=subprocess.run) -> str:
     """Resolve the git top-level for cwd (Claude Code keys project memory by repo root)."""
     try:
-        out = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"],
-                             capture_output=True, text=True, timeout=5)
+        out = runner(["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+                     capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return cwd
     return out.stdout.strip() if out.returncode == 0 and out.stdout.strip() else cwd
